@@ -1,0 +1,541 @@
+/* Workforce & Payroll Management System - Blue Theme Styles */
+
+:root {
+    --primary-blue: #1a56db;
+    --dark-blue: #1e3a8a;
+    --navy-blue: #0f172a;
+    --light-blue: #3b82f6;
+    --sky-blue: #60a5fa;
+    --pale-blue: #dbeafe;
+    --very-light-blue: #eff6ff;
+    --accent-blue: #2563eb;
+    --gradient-start: #1e40af;
+    --gradient-end: #3b82f6;
+    --bg-color: #f8fafc;
+    --card-shadow: 0 4px 6px -1px rgba(30, 58, 138, 0.1), 0 2px 4px -1px rgba(30, 58, 138, 0.06);
+}
+
+/* Global Styles */
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    background-color: var(--bg-color);
+    color: #334155;
+    line-height: 1.6;
+}
+
+/* Login Page */
+.login-page {
+    background: linear-gradient(135deg, var(--gradient-start) 0%, var(--gradient-end) 100%);
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.login-container {
+    width: 100%;
+    max-width: 400px;
+    padding: 20px;
+}
+
+.login-card {
+    background: white;
+    border-radius: 16px;
+    padding: 40px;
+    box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+}
+
+.login-header {
+    text-align: center;
+    margin-bottom: 30px;
+}
+
+.login-header .logo {
+    width: 80px;
+    height: 80px;
+    background: linear-gradient(135deg, var(--gradient-start) 0%, var(--gradient-end) 100%);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0 auto 20px;
+}
+
+.login-header .logo i {
+    color: white;
+    font-size: 36px;
+}
+
+.login-header h2 {
+    color: var(--dark-blue);
+    font-weight: 700;
+    margin-bottom: 5px;
+}
+
+.login-footer {
+    text-align: center;
+    margin-top: 20px;
+    padding-top: 20px;
+    border-top: 1px solid #e5e7eb;
+}
+
+/* Navigation */
+.navbar {
+    background: linear-gradient(135deg, var(--dark-blue) 0%, var(--primary-blue) 100%);
+    padding: 1rem 1.5rem;
+    box-shadow: 0 4px 6px -1px rgba(30, 58, 138, 0.2);
+}
+
+.navbar-brand {
+    font-weight: 700;
+    font-size: 1.25rem;
+    color: white !important;
+}
+
+.navbar-nav .nav-link {
+    color: rgba(255, 255, 255, 0.9) !important;
+    font-weight: 500;
+    padding: 0.5rem 1rem;
+    transition: all 0.3s ease;
+}
+
+.navbar-nav .nav-link:hover {
+    color: white !important;
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 6px;
+}
+
+.dropdown-menu {
+    border: none;
+    box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+}
+
+.dropdown-item:hover {
+    background-color: var(--pale-blue);
+}
+
+/* Main Content */
+.main-content {
+    margin-left: 0;
+    padding: 2rem;
+    min-height: calc(100vh - 70px);
+}
+
+/* Page Header */
+.page-header {
+    margin-bottom: 2rem;
+    padding-bottom: 1rem;
+    border-bottom: 2px solid var(--pale-blue);
+}
+
+.page-header h2 {
+    color: var(--dark-blue);
+    font-weight: 700;
+    margin-bottom: 0.25rem;
+}
+
+/* Cards */
+.content-card {
+    background: white;
+    border-radius: 12px;
+    padding: 1.5rem;
+    box-shadow: var(--card-shadow);
+    margin-bottom: 1.5rem;
+    border: 1px solid #e2e8f0;
+}
+
+.content-card h5 {
+    color: var(--dark-blue);
+    font-weight: 600;
+    margin-bottom: 1rem;
+}
+
+/* Stat Cards */
+.stat-card {
+    background: white;
+    border-radius: 12px;
+    padding: 1.5rem;
+    display: flex;
+    align-items: center;
+    box-shadow: var(--card-shadow);
+    border-left: 4px solid var(--primary-blue);
+    transition: transform 0.3s ease;
+}
+
+.stat-card:hover {
+    transform: translateY(-2px);
+}
+
+.stat-icon {
+    width: 60px;
+    height: 60px;
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-right: 1rem;
+}
+
+.stat-icon.blue {
+    background: var(--pale-blue);
+    color: var(--primary-blue);
+}
+
+.stat-icon.dark-blue {
+    background: #e0e7ff;
+    color: var(--dark-blue);
+}
+
+.stat-icon.navy {
+    background: #dbeafe;
+    color: var(--navy-blue);
+}
+
+.stat-icon.light-blue {
+    background: #eff6ff;
+    color: var(--light-blue);
+}
+
+.stat-icon i {
+    font-size: 28px;
+}
+
+.stat-info h3 {
+    color: var(--dark-blue);
+    font-weight: 700;
+    margin: 0;
+    font-size: 2rem;
+}
+
+.stat-info p {
+    color: #64748b;
+    margin: 0;
+    font-size: 0.9rem;
+}
+
+/* Quick Action Cards */
+.quick-action-card {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 1.5rem;
+    background: var(--very-light-blue);
+    border-radius: 10px;
+    text-decoration: none;
+    color: var(--dark-blue);
+    transition: all 0.3s ease;
+    border: 1px solid #dbeafe;
+}
+
+.quick-action-card:hover {
+    background: var(--primary-blue);
+    color: white;
+    transform: translateY(-2px);
+}
+
+.quick-action-card i {
+    font-size: 24px;
+    margin-bottom: 0.5rem;
+}
+
+.quick-action-card span {
+    font-weight: 500;
+    font-size: 0.9rem;
+}
+
+/* Store List */
+.store-list {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+}
+
+.store-item {
+    display: flex;
+    align-items: center;
+    padding: 1rem;
+    background: var(--very-light-blue);
+    border-radius: 8px;
+}
+
+.store-item i {
+    margin-right: 1rem;
+    font-size: 20px;
+}
+
+.store-info {
+    display: flex;
+    flex-direction: column;
+}
+
+.store-name {
+    font-weight: 600;
+    color: var(--dark-blue);
+}
+
+/* Tables */
+.table {
+    margin-bottom: 0;
+}
+
+.table th {
+    font-weight: 600;
+    color: white;
+    border: none;
+}
+
+.table td {
+    padding: 1rem 0.75rem;
+    vertical-align: middle;
+}
+
+.table-hover tbody tr:hover {
+    background-color: var(--very-light-blue);
+}
+
+/* Forms */
+.form-control, .form-select {
+    border: 1px solid #d1d5db;
+    border-radius: 8px;
+    padding: 0.625rem 0.875rem;
+}
+
+.form-control:focus, .form-select:focus {
+    border-color: var(--primary-blue);
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
+
+.form-label {
+    font-weight: 500;
+    color: #374151;
+    margin-bottom: 0.5rem;
+}
+
+/* Buttons */
+.btn {
+    border-radius: 8px;
+    font-weight: 500;
+    padding: 0.5rem 1rem;
+    transition: all 0.3s ease;
+}
+
+.btn-primary {
+    background: linear-gradient(135deg, var(--primary-blue) 0%, var(--dark-blue) 100%);
+    border: none;
+}
+
+.btn-primary:hover {
+    background: linear-gradient(135deg, var(--dark-blue) 0%, var(--primary-blue) 100%);
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(59, 130, 246, 0.4);
+}
+
+.btn-outline-primary {
+    color: var(--primary-blue);
+    border-color: var(--primary-blue);
+}
+
+.btn-outline-primary:hover {
+    background: var(--primary-blue);
+    border-color: var(--primary-blue);
+}
+
+/* Alerts */
+.alert {
+    border-radius: 10px;
+    border: none;
+}
+
+.alert-success {
+    background: #dcfce7;
+    color: #166534;
+}
+
+.alert-danger {
+    background: #fee2e2;
+    color: #991b1b;
+}
+
+.alert-warning {
+    background: #fef3c7;
+    color: #92400e;
+}
+
+.alert-info {
+    background: var(--pale-blue);
+    color: var(--dark-blue);
+}
+
+/* Badges */
+.badge {
+    padding: 0.5em 0.75em;
+    border-radius: 6px;
+    font-weight: 500;
+}
+
+.bg-success {
+    background-color: #10b981 !important;
+}
+
+.bg-danger {
+    background-color: #ef4444 !important;
+}
+
+.bg-warning {
+    background-color: #f59e0b !important;
+    color: white;
+}
+
+.bg-info {
+    background-color: var(--light-blue) !important;
+}
+
+/* Payslip Styles */
+.payslip-container {
+    background: white;
+    border-radius: 12px;
+    padding: 2rem;
+    box-shadow: var(--card-shadow);
+    border: 2px solid var(--dark-blue);
+}
+
+.payslip-header {
+    background: linear-gradient(135deg, var(--dark-blue) 0%, var(--primary-blue) 100%);
+    color: white;
+    padding: 2rem;
+    border-radius: 10px;
+    margin-bottom: 2rem;
+}
+
+.company-name {
+    font-weight: 700;
+    margin-bottom: 0.5rem;
+}
+
+.payslip-title {
+    text-align: center;
+    margin-bottom: 2rem;
+    padding: 1rem;
+    background: var(--pale-blue);
+    border-radius: 8px;
+}
+
+.payslip-title h4 {
+    color: var(--dark-blue);
+    margin: 0;
+}
+
+.employee-details {
+    margin-bottom: 2rem;
+}
+
+.salary-breakdown {
+    margin-bottom: 2rem;
+}
+
+.salary-breakdown h6 {
+    background: var(--very-light-blue);
+    padding: 0.75rem;
+    border-radius: 6px;
+    margin-bottom: 1rem;
+}
+
+.net-salary {
+    margin-top: 2rem;
+}
+
+.qr-code-placeholder {
+    background: rgba(255, 255, 255, 0.1);
+    padding: 1rem;
+    border-radius: 8px;
+    text-align: center;
+}
+
+/* Employee Portal Profile */
+.profile-header {
+    padding: 2rem;
+    background: var(--very-light-blue);
+    border-radius: 12px;
+}
+
+.profile-avatar {
+    width: 100px;
+    height: 100px;
+    background: linear-gradient(135deg, var(--primary-blue) 0%, var(--dark-blue) 100%);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0 auto;
+    color: white;
+}
+
+.profile-details {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+}
+
+.detail-row {
+    display: flex;
+    justify-content: space-between;
+    padding: 0.75rem;
+    background: white;
+    border-radius: 8px;
+    border: 1px solid #e5e7eb;
+}
+
+.detail-label {
+    color: #64748b;
+    font-size: 0.9rem;
+}
+
+.detail-value {
+    color: var(--dark-blue);
+    font-weight: 600;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+    .main-content {
+        padding: 1rem;
+    }
+    
+    .stat-card {
+        flex-direction: column;
+        text-align: center;
+    }
+    
+    .stat-icon {
+        margin-right: 0;
+        margin-bottom: 1rem;
+    }
+    
+    .payslip-container {
+        padding: 1rem;
+    }
+    
+    .payslip-header {
+        padding: 1rem;
+    }
+}
+
+/* Utility Classes */
+.text-primary {
+    color: var(--primary-blue) !important;
+}
+
+.text-success {
+    color: #10b981 !important;
+}
+
+.text-danger {
+    color: #ef4444 !important;
+}

@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard - Workforce & Payroll</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+    {% include 'navbar.html' %}
+    
+    <div class="main-content">
+        <div class="container-fluid">
+            <div class="page-header">
+                <h2><i class="fas fa-tachometer-alt me-2"></i>Dashboard</h2>
+                <p class="text-muted">Overview of your workforce and payroll system</p>
+            </div>
+            
+            {% with messages = get_flashed_messages(with_categories=true) %}
+                {% if messages %}
+                    {% for category, message in messages %}
+                        <div class="alert alert-{{ category }} alert-dismissible fade show" role="alert">
+                            {{ message }}
+                            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                        </div>
+                    {% endfor %}
+                {% endif %}
+            {% endwith %}
+            
+            <!-- Stats Cards -->
+            <div class="row g-4 mb-4">
+                <div class="col-md-3">
+                    <div class="stat-card">
+                        <div class="stat-icon blue">
+                            <i class="fas fa-users"></i>
+                        </div>
+                        <div class="stat-info">
+                            <h3>{{ stats.get('active_employees', 0) }}</h3>
+                            <p>Active Employees</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="stat-card">
+                        <div class="stat-icon dark-blue">
+                            <i class="fas fa-user-slash"></i>
+                        </div>
+                        <div class="stat-info">
+                            <h3>{{ stats.get('archived_employees', 0) }}</h3>
+                            <p>Archived Employees</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="stat-card">
+                        <div class="stat-icon navy">
+                            <i class="fas fa-clipboard-check"></i>
+                        </div>
+                        <div class="stat-info">
+                            <h3>{{ stats.get('today_attendance', 0) }}</h3>
+                            <p>Today's Attendance</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="stat-card">
+                        <div class="stat-icon light-blue">
+                            <i class="fas fa-money-bill-wave"></i>
+                        </div>
+                        <div class="stat-info">
+                            <h3>{{ stats.get('pending_advances', 0) }}</h3>
+                            <p>Pending Advances</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Quick Actions -->
+            <div class="row">
+                <div class="col-md-8">
+                    <div class="content-card">
+                        <h5><i class="fas fa-bolt me-2"></i>Quick Actions</h5>
+                        <div class="row g-3 mt-2">
+                            <div class="col-md-4">
+                                <a href="{{ url_for('attendance') }}" class="quick-action-card">
+                                    <i class="fas fa-calendar-check"></i>
+                                    <span>Mark Attendance</span>
+                                </a>
+                            </div>
+                            <div class="col-md-4">
+                                <a href="{{ url_for('incentives') }}" class="quick-action-card">
+                                    <i class="fas fa-plus-circle"></i>
+                                    <span>Add Incentives</span>
+                                </a>
+                            </div>
+                            <div class="col-md-4">
+                                <a href="{{ url_for('penalties') }}" class="quick-action-card">
+                                    <i class="fas fa-minus-circle"></i>
+                                    <span>Add Penalties</span>
+                                </a>
+                            </div>
+                            {% if role == 'admin' %}
+                            <div class="col-md-4">
+                                <a href="{{ url_for('payroll') }}" class="quick-action-card">
+                                    <i class="fas fa-calculator"></i>
+                                    <span>Compute Payroll</span>
+                                </a>
+                            </div>
+                            <div class="col-md-4">
+                                <a href="{{ url_for('employees') }}" class="quick-action-card">
+                                    <i class="fas fa-user-plus"></i>
+                                    <span>Manage Employees</span>
+                                </a>
+                            </div>
+                            <div class="col-md-4">
+                                <a href="{{ url_for('settings') }}" class="quick-action-card">
+                                    <i class="fas fa-cog"></i>
+                                    <span>Settings</span>
+                                </a>
+                            </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="content-card">
+                        <h5><i class="fas fa-store me-2"></i>Stores</h5>
+                        <div class="store-list mt-3">
+                            {% for store in stores %}
+                            <div class="store-item">
+                                <i class="fas fa-building text-primary"></i>
+                                <div class="store-info">
+                                    <span class="store-name">{{ store.name }}</span>
+                                    <small class="text-muted">{{ store.address }}</small>
+                                </div>
+                            </div>
+                            {% endfor %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

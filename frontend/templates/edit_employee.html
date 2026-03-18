@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Edit Employee - Workforce & Payroll</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+    {% include 'navbar.html' %}
+    
+    <div class="main-content">
+        <div class="container-fluid">
+            <div class="page-header">
+                <h2><i class="fas fa-user-edit me-2"></i>Edit Employee</h2>
+                <p class="text-muted">Update employee profile information</p>
+            </div>
+            
+            <div class="content-card">
+                <form method="POST" class="row g-3">
+                    <div class="col-md-6">
+                        <label class="form-label">Full Name *</label>
+                        <input type="text" name="name" class="form-control" value="{{ employee.name }}" required>
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label">Phone Number *</label>
+                        <input type="tel" name="phone" class="form-control" value="{{ employee.phone }}" required>
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label">Email</label>
+                        <input type="email" name="email" class="form-control" value="{{ employee.email }}">
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label">Role Type *</label>
+                        <select name="role_type" class="form-select" required>
+                            <option value="Picking" {% if employee.role_type == 'Picking' %}selected{% endif %}>Picking</option>
+                            <option value="Put-away" {% if employee.role_type == 'Put-away' %}selected{% endif %}>Put-away</option>
+                            <option value="Audit" {% if employee.role_type == 'Audit' %}selected{% endif %}>Audit</option>
+                        </select>
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label">Store *</label>
+                        <select name="store_id" class="form-select" required>
+                            {% for store in stores %}
+                            <option value="{{ store.id }}" {% if employee.store_id == store.id %}selected{% endif %}>{{ store.name }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label">Date of Joining *</label>
+                        <input type="date" name="date_of_joining" class="form-control" value="{{ employee.date_of_joining }}" required>
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label">Base Monthly Salary (₹) *</label>
+                        <input type="number" name="base_monthly_salary" class="form-control" step="0.01" value="{{ employee.base_monthly_salary }}" required>
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label">Address</label>
+                        <textarea name="address" class="form-control" rows="1">{{ employee.address }}</textarea>
+                    </div>
+                    <div class="col-12">
+                        <hr class="my-4">
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fas fa-save me-2"></i>Update Employee
+                        </button>
+                        <a href="{{ url_for('employees') }}" class="btn btn-outline-secondary ms-2">Cancel</a>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+    
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>
