@@ -165,45 +165,88 @@
     
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script>
-        function checkEligibility() {
-            const employeeId = document.getElementById('calc_employee_id').value;
-            const dateStr = document.getElementById('calc_date').value;
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('Advances page loaded');
+        });
+        
+        async function checkEligibility() {
+            console.log('checkEligibility called');
             
-            if (!employeeId || !dateStr) {
-                alert('Please select an employee and date');
+            const employeeSelect = document.getElementById('calc_employee_id');
+            const dateInput = document.getElementById('calc_date');
+            
+            if (!employeeSelect || !dateInput) {
+                alert('Form elements not found. Please refresh the page.');
+                return;
+            }
+            
+            const employeeId = employeeSelect.value;
+            const dateStr = dateInput.value;
+            
+            console.log('Values:', { employeeId, dateStr });
+            
+            if (!employeeId) {
+                alert('Please select an employee');
+                return;
+            }
+            if (!dateStr) {
+                alert('Please select a date');
                 return;
             }
             
             const date = new Date(dateStr);
+            if (isNaN(date.getTime())) {
+                alert('Invalid date selected');
+                return;
+            }
+            
             const dayOfMonth = date.getDate();
             const month = date.getMonth() + 1;
             const year = date.getFullYear();
             
-            // Call backend API for eligibility check
-            fetch(`/api/advance/eligibility?employee_id=${employeeId}&day=${dayOfMonth}&month=${month}&year=${year}`)
-                .then(response => response.json())
-                .then(data => {
-                    if (data.success) {
-                        document.getElementById('dayOfMonth').textContent = data.day_of_month;
-                        document.getElementById('eligibleDays').textContent = data.eligible_days;
-                        document.getElementById('perDaySalary').textContent = data.per_day_salary.toFixed(2);
-                        document.getElementById('maxAdvance').textContent = data.max_advance_amount.toFixed(2);
-                        document.getElementById('eligibilityResult').classList.remove('d-none');
-                        
-                        // Fill the advance form
-                        document.getElementById('form_employee_id').value = employeeId;
-                        document.getElementById('form_request_date').value = dateStr;
-                        document.getElementById('form_day_of_month').value = dayOfMonth;
-                        document.getElementById('form_eligible_days').value = data.eligible_days;
-                        document.getElementById('form_amount').max = data.max_advance_amount;
-                    } else {
-                        alert('Error checking eligibility: ' + data.message);
-                    }
-                })
-                .catch(error => {
-                    console.error('Error:', error);
-                    alert('Error checking eligibility. Please try again.');
-                });
+            console.log('Parsed date:', { dayOfMonth, month, year });
+            
+            const url = `/api/advance/eligibility?employee_id=${encodeURIComponent(employeeId)}&day=${encodeURIComponent(dayOfMonth)}&month=${encodeURIComponent(month)}&year=${encodeURIComponent(year)}`;
+            console.log('Fetching URL:', url);
+            
+            try {
+                const response = await fetch(url);
+                console.log('Response status:', response.status);
+                
+                if (!response.ok) {
+                    throw new Error('Server returned ' + response.status);
+                }
+                
+                const data = await response.json();
+                console.log('Response data:', data);
+                
+                if (data.success) {
+                    // Show the result card
+                    const resultDiv = document.getElementById('eligibilityResult');
+                    resultDiv.classList.remove('d-none');
+                    
+                    // Update the values
+                    document.getElementById('dayOfMonth').textContent = data.day_of_month;
+                    document.getElementById('eligibleDays').textContent = data.eligible_days;
+                    document.getElementById('perDaySalary').textContent = Number(data.per_day_salary).toFixed(2);
+                    document.getElementById('maxAdvance').textContent = Number(data.max_advance_amount).toFixed(2);
+                    
+                    // Fill the advance form
+                    document.getElementById('form_employee_id').value = employeeId;
+                    document.getElementById('form_request_date').value = dateStr;
+                    document.getElementById('form_day_of_month').value = dayOfMonth;
+                    document.getElementById('form_eligible_days').value = data.eligible_days;
+                    document.getElementById('form_amount').max = data.max_advance_amount;
+                    
+                    // Scroll to results
+                    resultDiv.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+                } else {
+                    alert('Error: ' + (data.message || 'Unknown error'));
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                alert('Error checking eligibility: ' + error.message);
+            }
         }
     </script>
 </body>

@@ -3,7 +3,7 @@ Frontend Flask Application for Workforce & Payroll Management System
 UI Server running on port 5000
 Connects to Backend API Server on port 5001
 """
-from flask import Flask, render_template, request, redirect, url_for, session, flash
+from flask import Flask, render_template, request, redirect, url_for, session, flash, jsonify
 import requests
 import json
 from functools import wraps
@@ -392,14 +392,22 @@ def advances():
 @login_required
 def check_advance_eligibility():
     """Proxy for advance eligibility check"""
-    employee_id = request.args.get('employee_id', type=int)
-    day = request.args.get('day', type=int)
-    month = request.args.get('month', type=int)
-    year = request.args.get('year', type=int)
-    
-    result = api_call('GET', '/advance/eligibility', 
-                     params={'employee_id': employee_id, 'day': day, 'month': month, 'year': year})
-    return json.dumps(result)
+    try:
+        employee_id = request.args.get('employee_id', type=int)
+        day = request.args.get('day', type=int)
+        month = request.args.get('month', type=int)
+        year = request.args.get('year', type=int)
+        
+        print(f"Eligibility check requested: employee_id={employee_id}, day={day}, month={month}, year={year}")
+        
+        result = api_call('GET', '/advance/eligibility', 
+                         params={'employee_id': employee_id, 'day': day, 'month': month, 'year': year})
+        
+        print(f"Backend response: {result}")
+        return jsonify(result)
+    except Exception as e:
+        print(f"Error in check_advance_eligibility: {str(e)}")
+        return jsonify({'success': False, 'message': f'Server error: {str(e)}'}), 500
 
 # ==================== PAYROLL ROUTES ====================
 
