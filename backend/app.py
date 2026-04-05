@@ -206,34 +206,40 @@ def create_employee():
     data = request.json
     
     conn = get_db_connection()
-    cursor = conn.cursor()
-    
-    # Create user account first
-    username = data.get('phone') or generate_random_password(6)
-    password = generate_random_password()
-    
-    cursor.execute("""
-        INSERT INTO users (username, password, role, email, phone)
-        VALUES (?, ?, 'employee', ?, ?)
-    """, (username, password, data.get('email'), data.get('phone')))
-    
-    user_id = cursor.lastrowid
-    
-    # Create employee record
-    cursor.execute("""
-        INSERT INTO employees (user_id, name, address, email, phone, date_of_joining, role_type, base_monthly_salary, store_id)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-    """, (user_id, data.get('name'), data.get('address'), data.get('email'),
-          data.get('phone'), data.get('date_of_joining'), data.get('role_type'),
-          data.get('base_monthly_salary'), data.get('store_id')))
-    
-    employee_id = cursor.lastrowid
-    conn.commit()
-    conn.close()
-    
+    try:
+        cursor = conn.cursor()
+
+        # Create user account first
+        username = data.get('phone') or generate_random_password(6)
+        password = generate_random_password()
+
+        cursor.execute("""
+            INSERT INTO users (username, password, role, email, phone)
+            VALUES (?, ?, 'employee', ?, ?)
+        """, (username, password, data.get('email'), data.get('phone')))
+
+        user_id = cursor.lastrowid
+
+        # Create employee record
+        cursor.execute("""
+            INSERT INTO employees (user_id, name, address, email, phone, date_of_joining, role_type, base_monthly_salary, store_id)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+        """, (user_id, data.get('name'), data.get('address'), data.get('email'),
+              data.get('phone'), data.get('date_of_joining'), data.get('role_type'),
+              data.get('base_monthly_salary'), data.get('store_id')))
+
+        employee_id = cursor.lastrowid
+        conn.commit()
+    except Exception as e:
+        conn.rollback()
+        conn.close()
+        return jsonify({'success': False, 'message': str(e)}), 400
+    finally:
+        conn.close()
+
     return jsonify({
-        'success': True, 
-        'employee_id': employee_id, 
+        'success': True,
+        'employee_id': employee_id,
         'user_id': user_id,
         'username': username,
         'password': password,
@@ -744,10 +750,11 @@ def compute_payroll():
         
         # Add incentive details
         for inc in incentives:
+            inc_detail_type = 'incentive_daily' if inc['incentive_type'] == 'daily_performance' else 'incentive_monthly'
             cursor.execute("""
                 INSERT INTO payroll_details (payroll_id, detail_type, description, amount, date)
                 VALUES (?, ?, ?, ?, ?)
-            """, (payroll_id, f"incentive_{inc['incentive_type']}", inc['description'], 
+            """, (payroll_id, inc_detail_type, inc['description'],
                   inc['amount'], inc['date']))
         
         # Add penalty details
@@ -885,8 +892,8 @@ def generate_payslip(payroll_id):
     details = cursor.fetchall()
     
     # Organize details
-    incentives_daily = [d for d in details if d['detail_type'] == 'incentive_daily_performance']
-    incentives_monthly = [d for d in details if d['detail_type'] == 'incentive_monthly_bonus']
+    incentives_daily = [d for d in details if d['detail_type'] == 'incentive_daily']
+    incentives_monthly = [d for d in details if d['detail_type'] == 'incentive_monthly']
     penalties_daily = [d for d in details if d['detail_type'] == 'penalty_daily']
     penalties_monthly = [d for d in details if d['detail_type'] == 'penalty_monthly']
     advances = [d for d in details if d['detail_type'] == 'advance']

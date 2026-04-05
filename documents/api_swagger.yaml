@@ -1,0 +1,1500 @@
+openapi: 3.0.3
+info:
+  title: Workforce & Payroll Management System API
+  description: |
+    RESTful backend API for the Workforce & Payroll Management System.
+    Manages employees, attendance, incentives, penalties, salary advances,
+    and automated payroll computation for warehouse operations.
+  version: "1.0.0"
+  contact:
+    name: Team 097 - JAN2026
+servers:
+  - url: http://localhost:5001/api
+    description: Local development server
+
+tags:
+  - name: Authentication
+    description: User login and password management
+  - name: Stores
+    description: Warehouse store management
+  - name: Settings
+    description: Global system configuration
+  - name: Employees
+    description: Employee CRUD, archiving, and credential management
+  - name: Attendance
+    description: Daily attendance marking and retrieval
+  - name: Incentives
+    description: Employee incentive management
+  - name: Penalties
+    description: Employee penalty management
+  - name: Salary Advance
+    description: Salary advance eligibility and requests
+  - name: Payroll
+    description: Payroll computation, finalization, and payslip generation
+  - name: Dashboard
+    description: Aggregated statistics for admin dashboard
+
+paths:
+
+  # ─── AUTHENTICATION ────────────────────────────────────────
+
+  /login:
+    post:
+      tags: [Authentication]
+      summary: Authenticate user
+      description: Validates username and password. Returns user details and role on success.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LoginRequest'
+            example:
+              username: admin
+              password: admin123
+      responses:
+        '200':
+          description: Login successful
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LoginResponse'
+              example:
+                success: true
+                user_id: 1
+                username: admin
+                role: admin
+                email: admin@company.com
+        '401':
+          description: Invalid credentials
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                success: false
+                message: Invalid credentials
+
+  /change_password:
+    post:
+      tags: [Authentication]
+      summary: Change user password
+      description: Validates the old password and replaces it with the new one.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ChangePasswordRequest'
+            example:
+              user_id: 1
+              old_password: admin123
+              new_password: newSecurePass
+      responses:
+        '200':
+          description: Password changed successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessMessage'
+              example:
+                success: true
+                message: Password updated successfully
+        '400':
+          description: Wrong old password or invalid user
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                success: false
+                message: Invalid old password
+
+  # ─── STORES ────────────────────────────────────────────────
+
+  /stores:
+    get:
+      tags: [Stores]
+      summary: Get all active stores
+      description: Returns a list of all stores where is_active = 1.
+      responses:
+        '200':
+          description: List of stores
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  stores:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Store'
+    post:
+      tags: [Stores]
+      summary: Create a new store
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/StoreCreate'
+            example:
+              name: North Store
+              address: 12 Industrial Road
+      responses:
+        '200':
+          description: Store created
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  store_id:
+                    type: integer
+                  message:
+                    type: string
+              example:
+                success: true
+                store_id: 2
+                message: Store created successfully
+
+  # ─── SETTINGS ─────────────────────────────────────────────
+
+  /settings:
+    get:
+      tags: [Settings]
+      summary: Get all global settings
+      description: Returns key-value map of all global configuration settings.
+      responses:
+        '200':
+          description: Settings map
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  settings:
+                    type: object
+                    additionalProperties:
+                      type: string
+              example:
+                success: true
+                settings:
+                  paid_leaves_per_month: "4"
+
+  /settings/paid_leaves:
+    put:
+      tags: [Settings]
+      summary: Update paid leaves per month
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [paid_leaves]
+              properties:
+                paid_leaves:
+                  type: integer
+                  minimum: 0
+            example:
+              paid_leaves: 6
+      responses:
+        '200':
+          description: Setting updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessMessage'
+              example:
+                success: true
+                message: Paid leaves setting updated
+
+  # ─── EMPLOYEES ────────────────────────────────────────────
+
+  /employees:
+    get:
+      tags: [Employees]
+      summary: List employees
+      description: |
+        Returns employees joined with their store name and username.
+        Filters out archived employees by default.
+      parameters:
+        - name: store_id
+          in: query
+          schema:
+            type: integer
+          description: Filter by store
+        - name: include_archived
+          in: query
+          schema:
+            type: string
+            enum: [true, false]
+            default: "false"
+          description: Include archived employees
+      responses:
+        '200':
+          description: Employee list
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  employees:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Employee'
+    post:
+      tags: [Employees]
+      summary: Create employee and linked user account
+      description: |
+        Creates a user account (using phone as username) and an employee record.
+        Returns auto-generated credentials for the employee to log in.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/EmployeeCreate'
+            example:
+              name: Ravi Kumar
+              address: 45 MG Road, Bangalore
+              email: ravi@warehouse.com
+              phone: "9876543210"
+              date_of_joining: "2024-01-15"
+              role_type: Picking
+              base_monthly_salary: 28000
+              store_id: 1
+      responses:
+        '200':
+          description: Employee created with credentials
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EmployeeCreateResponse'
+        '400':
+          description: Duplicate phone/username or missing required fields
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /employees/{employee_id}:
+    get:
+      tags: [Employees]
+      summary: Get single employee
+      parameters:
+        - $ref: '#/components/parameters/EmployeeId'
+      responses:
+        '200':
+          description: Employee details
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  employee:
+                    $ref: '#/components/schemas/EmployeeDetail'
+        '404':
+          description: Employee not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+    put:
+      tags: [Employees]
+      summary: Update employee details
+      parameters:
+        - $ref: '#/components/parameters/EmployeeId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/EmployeeUpdate'
+      responses:
+        '200':
+          description: Updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessMessage'
+
+  /employees/{employee_id}/archive:
+    post:
+      tags: [Employees]
+      summary: Archive or unarchive an employee
+      parameters:
+        - $ref: '#/components/parameters/EmployeeId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                is_archived:
+                  type: integer
+                  enum: [0, 1]
+            example:
+              is_archived: 1
+      responses:
+        '200':
+          description: Archive status updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessMessage'
+
+  /employees/{employee_id}/reset_password:
+    post:
+      tags: [Employees]
+      summary: Reset employee password
+      description: Generates a new random 8-character password for the employee's linked user account.
+      parameters:
+        - $ref: '#/components/parameters/EmployeeId'
+      responses:
+        '200':
+          description: Password reset
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  new_password:
+                    type: string
+                  message:
+                    type: string
+              example:
+                success: true
+                new_password: aB3xK9mZ
+                message: Password reset successfully
+        '404':
+          description: Employee has no user account
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  # ─── ATTENDANCE ───────────────────────────────────────────
+
+  /attendance:
+    get:
+      tags: [Attendance]
+      summary: Get attendance records
+      parameters:
+        - name: employee_id
+          in: query
+          schema:
+            type: integer
+        - name: store_id
+          in: query
+          schema:
+            type: integer
+        - name: start_date
+          in: query
+          schema:
+            type: string
+            format: date
+          example: "2024-03-01"
+        - name: end_date
+          in: query
+          schema:
+            type: string
+            format: date
+          example: "2024-03-31"
+      responses:
+        '200':
+          description: Attendance records
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  attendance:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/AttendanceRecord'
+    post:
+      tags: [Attendance]
+      summary: Mark or update attendance
+      description: |
+        Marks attendance for an employee on a given date.
+        If a record already exists for that date, it is overwritten (upsert).
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AttendanceMark'
+            example:
+              employee_id: 1
+              date: "2024-03-15"
+              status: Present
+              overtime_hours: 2
+      responses:
+        '200':
+          description: Attendance marked
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessMessage'
+
+  # ─── INCENTIVES ──────────────────────────────────────────
+
+  /incentives:
+    get:
+      tags: [Incentives]
+      summary: Get incentive records
+      parameters:
+        - name: employee_id
+          in: query
+          schema:
+            type: integer
+        - name: month
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 12
+        - name: year
+          in: query
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Incentive list
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  incentives:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Incentive'
+    post:
+      tags: [Incentives]
+      summary: Add incentive for employee
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/IncentiveCreate'
+            example:
+              employee_id: 1
+              amount: 500
+              incentive_type: daily_performance
+              date: "2024-03-10"
+              month: 3
+              year: 2024
+              description: Exceeded daily pick target
+      responses:
+        '200':
+          description: Incentive added
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  incentive_id:
+                    type: integer
+                  message:
+                    type: string
+
+  /incentives/{incentive_id}:
+    delete:
+      tags: [Incentives]
+      summary: Delete an incentive
+      parameters:
+        - name: incentive_id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Deleted
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessMessage'
+
+  # ─── PENALTIES ───────────────────────────────────────────
+
+  /penalties:
+    get:
+      tags: [Penalties]
+      summary: Get penalty records
+      parameters:
+        - name: employee_id
+          in: query
+          schema:
+            type: integer
+        - name: month
+          in: query
+          schema:
+            type: integer
+        - name: year
+          in: query
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Penalty list
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  penalties:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Penalty'
+    post:
+      tags: [Penalties]
+      summary: Add penalty for employee
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PenaltyCreate'
+            example:
+              employee_id: 1
+              amount: 300
+              penalty_type: daily
+              date: "2024-03-12"
+              month: 3
+              year: 2024
+              description: Late arrival
+      responses:
+        '200':
+          description: Penalty added
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  penalty_id:
+                    type: integer
+                  message:
+                    type: string
+
+  /penalties/{penalty_id}:
+    delete:
+      tags: [Penalties]
+      summary: Delete a penalty
+      parameters:
+        - name: penalty_id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Deleted
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessMessage'
+
+  # ─── SALARY ADVANCE ──────────────────────────────────────
+
+  /advance/eligibility:
+    get:
+      tags: [Salary Advance]
+      summary: Check advance eligibility (7-day rule)
+      description: |
+        Calculates the maximum advance an employee can request based on
+        the 7-day rule: eligible_days = day_of_month − 7.
+        max_advance = eligible_days × per_day_salary.
+      parameters:
+        - name: employee_id
+          in: query
+          required: true
+          schema:
+            type: integer
+        - name: day
+          in: query
+          required: true
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 31
+          description: Current day of the month
+        - name: month
+          in: query
+          required: true
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 12
+        - name: year
+          in: query
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Eligibility result
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EligibilityResponse'
+              example:
+                success: true
+                day_of_month: 15
+                eligible_days: 8
+                per_day_salary: 967.74
+                max_advance_amount: 7741.92
+        '400':
+          description: Missing required parameters
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Employee not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /advance:
+    get:
+      tags: [Salary Advance]
+      summary: Get salary advance records
+      parameters:
+        - name: employee_id
+          in: query
+          schema:
+            type: integer
+        - name: month
+          in: query
+          schema:
+            type: integer
+        - name: year
+          in: query
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Advance records
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  advances:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/SalaryAdvance'
+    post:
+      tags: [Salary Advance]
+      summary: Request a salary advance
+      description: Creates an advance record with status 'approved'.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AdvanceCreate'
+            example:
+              employee_id: 1
+              amount: 5000
+              request_date: "2024-03-15"
+              month: 3
+              year: 2024
+              day_of_month: 15
+              eligible_days: 8
+      responses:
+        '200':
+          description: Advance created
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  advance_id:
+                    type: integer
+                  message:
+                    type: string
+
+  # ─── PAYROLL ─────────────────────────────────────────────
+
+  /payroll/compute:
+    post:
+      tags: [Payroll]
+      summary: Compute payroll for a month
+      description: |
+        Computes net salary for all active employees in a given month/year.
+        Formula:
+          net_salary = base_salary + overtime_pay + total_incentives
+                       − total_penalties − leave_deduction − salary_advances
+
+        Leave deduction applies only to leaves exceeding the paid_leaves_per_month setting.
+        Overtime rate = 1.5× hourly rate (per_day_salary ÷ 8).
+        Creates or updates a payroll record for each employee.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PayrollComputeRequest'
+            example:
+              month: 3
+              year: 2024
+              store_id: 1
+      responses:
+        '200':
+          description: Payroll computed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PayrollComputeResponse'
+        '400':
+          description: Missing month or year
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /payroll:
+    get:
+      tags: [Payroll]
+      summary: Get payroll records
+      parameters:
+        - name: employee_id
+          in: query
+          schema:
+            type: integer
+        - name: month
+          in: query
+          schema:
+            type: integer
+        - name: year
+          in: query
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Payroll records
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  payroll:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/PayrollRecord'
+
+  /payroll/{payroll_id}/details:
+    get:
+      tags: [Payroll]
+      summary: Get payroll breakdown details
+      description: Returns line-item breakdown of incentives, penalties, and advances for a payroll record.
+      parameters:
+        - $ref: '#/components/parameters/PayrollId'
+      responses:
+        '200':
+          description: Payroll detail lines
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  details:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/PayrollDetail'
+
+  /payroll/{payroll_id}/finalize:
+    post:
+      tags: [Payroll]
+      summary: Finalize payroll
+      description: |
+        Sets payroll status to 'finalized' and marks all associated
+        salary advances as 'deducted'.
+      parameters:
+        - $ref: '#/components/parameters/PayrollId'
+      responses:
+        '200':
+          description: Finalized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessMessage'
+
+  /payroll/{payroll_id}/payslip:
+    get:
+      tags: [Payroll]
+      summary: Generate payslip data
+      description: Returns full payslip data including employee details, salary breakdown, and all line items.
+      parameters:
+        - $ref: '#/components/parameters/PayrollId'
+      responses:
+        '200':
+          description: Payslip data
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  payslip:
+                    $ref: '#/components/schemas/Payslip'
+        '404':
+          description: Payroll not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  # ─── DASHBOARD ───────────────────────────────────────────
+
+  /dashboard/stats:
+    get:
+      tags: [Dashboard]
+      summary: Get dashboard statistics
+      parameters:
+        - name: store_id
+          in: query
+          schema:
+            type: integer
+          description: Scope stats to a specific store
+      responses:
+        '200':
+          description: Dashboard stats
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DashboardStats'
+              example:
+                success: true
+                active_employees: 42
+                archived_employees: 3
+                today_attendance: 38
+                pending_advances: 2
+
+# ─── COMPONENTS ──────────────────────────────────────────────
+
+components:
+  parameters:
+    EmployeeId:
+      name: employee_id
+      in: path
+      required: true
+      schema:
+        type: integer
+    PayrollId:
+      name: payroll_id
+      in: path
+      required: true
+      schema:
+        type: integer
+
+  schemas:
+
+    LoginRequest:
+      type: object
+      required: [username, password]
+      properties:
+        username:
+          type: string
+        password:
+          type: string
+
+    LoginResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+        user_id:
+          type: integer
+        username:
+          type: string
+        role:
+          type: string
+          enum: [admin, manager, employee]
+        email:
+          type: string
+          nullable: true
+
+    ChangePasswordRequest:
+      type: object
+      required: [user_id, old_password, new_password]
+      properties:
+        user_id:
+          type: integer
+        old_password:
+          type: string
+        new_password:
+          type: string
+
+    Store:
+      type: object
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+        address:
+          type: string
+          nullable: true
+        is_active:
+          type: integer
+        created_at:
+          type: string
+          format: date-time
+
+    StoreCreate:
+      type: object
+      required: [name]
+      properties:
+        name:
+          type: string
+        address:
+          type: string
+          nullable: true
+
+    Employee:
+      type: object
+      properties:
+        id:
+          type: integer
+        user_id:
+          type: integer
+          nullable: true
+        name:
+          type: string
+        address:
+          type: string
+        email:
+          type: string
+        phone:
+          type: string
+        date_of_joining:
+          type: string
+          format: date
+        role_type:
+          type: string
+          enum: [Picking, Put-away, Audit]
+        base_monthly_salary:
+          type: number
+          format: float
+        store_id:
+          type: integer
+        store_name:
+          type: string
+        username:
+          type: string
+        is_archived:
+          type: integer
+
+    EmployeeDetail:
+      allOf:
+        - $ref: '#/components/schemas/Employee'
+        - type: object
+          properties:
+            user_password:
+              type: string
+              description: Current password (plain text — development only)
+
+    EmployeeCreate:
+      type: object
+      required: [name, date_of_joining, role_type, base_monthly_salary]
+      properties:
+        name:
+          type: string
+        address:
+          type: string
+        email:
+          type: string
+        phone:
+          type: string
+          description: Used as the employee's login username
+        date_of_joining:
+          type: string
+          format: date
+        role_type:
+          type: string
+          enum: [Picking, Put-away, Audit]
+        base_monthly_salary:
+          type: number
+          format: float
+        store_id:
+          type: integer
+
+    EmployeeCreateResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+        employee_id:
+          type: integer
+        user_id:
+          type: integer
+        username:
+          type: string
+        password:
+          type: string
+        message:
+          type: string
+
+    EmployeeUpdate:
+      type: object
+      properties:
+        name:
+          type: string
+        address:
+          type: string
+        email:
+          type: string
+        phone:
+          type: string
+        role_type:
+          type: string
+          enum: [Picking, Put-away, Audit]
+        base_monthly_salary:
+          type: number
+          format: float
+        store_id:
+          type: integer
+
+    AttendanceRecord:
+      type: object
+      properties:
+        id:
+          type: integer
+        employee_id:
+          type: integer
+        employee_name:
+          type: string
+        date:
+          type: string
+          format: date
+        status:
+          type: string
+          enum: [Present, Absent, Half-day]
+        overtime_hours:
+          type: number
+          format: float
+
+    AttendanceMark:
+      type: object
+      required: [employee_id, date, status]
+      properties:
+        employee_id:
+          type: integer
+        date:
+          type: string
+          format: date
+        status:
+          type: string
+          enum: [Present, Absent, Half-day]
+        overtime_hours:
+          type: number
+          format: float
+          default: 0
+
+    Incentive:
+      type: object
+      properties:
+        id:
+          type: integer
+        employee_id:
+          type: integer
+        employee_name:
+          type: string
+        amount:
+          type: number
+          format: float
+        incentive_type:
+          type: string
+          enum: [daily_performance, monthly_bonus]
+        date:
+          type: string
+          format: date
+          nullable: true
+        month:
+          type: integer
+        year:
+          type: integer
+        description:
+          type: string
+          nullable: true
+
+    IncentiveCreate:
+      type: object
+      required: [employee_id, amount, incentive_type]
+      properties:
+        employee_id:
+          type: integer
+        amount:
+          type: number
+          format: float
+        incentive_type:
+          type: string
+          enum: [daily_performance, monthly_bonus]
+        date:
+          type: string
+          format: date
+          nullable: true
+        month:
+          type: integer
+        year:
+          type: integer
+        description:
+          type: string
+          nullable: true
+
+    Penalty:
+      type: object
+      properties:
+        id:
+          type: integer
+        employee_id:
+          type: integer
+        employee_name:
+          type: string
+        amount:
+          type: number
+          format: float
+        penalty_type:
+          type: string
+          enum: [daily, monthly]
+        date:
+          type: string
+          format: date
+          nullable: true
+        month:
+          type: integer
+        year:
+          type: integer
+        description:
+          type: string
+          nullable: true
+
+    PenaltyCreate:
+      type: object
+      required: [employee_id, amount, penalty_type]
+      properties:
+        employee_id:
+          type: integer
+        amount:
+          type: number
+          format: float
+        penalty_type:
+          type: string
+          enum: [daily, monthly]
+        date:
+          type: string
+          format: date
+          nullable: true
+        month:
+          type: integer
+        year:
+          type: integer
+        description:
+          type: string
+          nullable: true
+
+    EligibilityResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+        day_of_month:
+          type: integer
+        eligible_days:
+          type: integer
+        per_day_salary:
+          type: number
+          format: float
+        max_advance_amount:
+          type: number
+          format: float
+
+    SalaryAdvance:
+      type: object
+      properties:
+        id:
+          type: integer
+        employee_id:
+          type: integer
+        employee_name:
+          type: string
+        amount:
+          type: number
+          format: float
+        request_date:
+          type: string
+          format: date
+        month:
+          type: integer
+        year:
+          type: integer
+        day_of_month:
+          type: integer
+        eligible_days:
+          type: integer
+        status:
+          type: string
+          enum: [pending, approved, rejected, deducted]
+
+    AdvanceCreate:
+      type: object
+      required: [employee_id, amount, request_date, month, year, day_of_month, eligible_days]
+      properties:
+        employee_id:
+          type: integer
+        amount:
+          type: number
+          format: float
+        request_date:
+          type: string
+          format: date
+        month:
+          type: integer
+        year:
+          type: integer
+        day_of_month:
+          type: integer
+        eligible_days:
+          type: integer
+
+    PayrollComputeRequest:
+      type: object
+      required: [month, year]
+      properties:
+        month:
+          type: integer
+          minimum: 1
+          maximum: 12
+        year:
+          type: integer
+        store_id:
+          type: integer
+          nullable: true
+
+    PayrollComputeResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+        message:
+          type: string
+        computed:
+          type: array
+          items:
+            type: object
+            properties:
+              employee_id:
+                type: integer
+              employee_name:
+                type: string
+              payroll_id:
+                type: integer
+              net_salary:
+                type: number
+                format: float
+
+    PayrollRecord:
+      type: object
+      properties:
+        id:
+          type: integer
+        employee_id:
+          type: integer
+        employee_name:
+          type: string
+        month:
+          type: integer
+        year:
+          type: integer
+        base_salary:
+          type: number
+          format: float
+        per_day_salary:
+          type: number
+          format: float
+        total_days_in_month:
+          type: integer
+        days_present:
+          type: integer
+        days_absent:
+          type: integer
+        days_half_day:
+          type: integer
+        paid_leaves_allowed:
+          type: integer
+        unpaid_leaves:
+          type: number
+          format: float
+        leave_deduction:
+          type: number
+          format: float
+        total_overtime_hours:
+          type: number
+          format: float
+        overtime_pay:
+          type: number
+          format: float
+        total_incentives:
+          type: number
+          format: float
+        total_penalties:
+          type: number
+          format: float
+        salary_advances_deducted:
+          type: number
+          format: float
+        net_salary:
+          type: number
+          format: float
+        status:
+          type: string
+          enum: [draft, finalized]
+
+    PayrollDetail:
+      type: object
+      properties:
+        id:
+          type: integer
+        payroll_id:
+          type: integer
+        detail_type:
+          type: string
+          enum: [incentive_daily, incentive_monthly, penalty_daily, penalty_monthly, advance]
+        description:
+          type: string
+          nullable: true
+        amount:
+          type: number
+          format: float
+        date:
+          type: string
+          format: date
+          nullable: true
+
+    Payslip:
+      type: object
+      properties:
+        payroll_id:
+          type: integer
+        employee_name:
+          type: string
+        employee_address:
+          type: string
+        employee_email:
+          type: string
+        employee_phone:
+          type: string
+        role_type:
+          type: string
+        store_name:
+          type: string
+        month:
+          type: integer
+        year:
+          type: integer
+        base_salary:
+          type: number
+        per_day_salary:
+          type: number
+        total_days_in_month:
+          type: integer
+        days_present:
+          type: integer
+        days_half_day:
+          type: integer
+        days_absent:
+          type: integer
+        paid_leaves_allowed:
+          type: integer
+        unpaid_leaves:
+          type: number
+        leave_deduction:
+          type: number
+        total_overtime_hours:
+          type: number
+        overtime_pay:
+          type: number
+        total_incentives:
+          type: number
+        total_penalties:
+          type: number
+        salary_advances_deducted:
+          type: number
+        net_salary:
+          type: number
+        status:
+          type: string
+          enum: [draft, finalized]
+        qr_code_url:
+          type: string
+
+    DashboardStats:
+      type: object
+      properties:
+        success:
+          type: boolean
+        active_employees:
+          type: integer
+        archived_employees:
+          type: integer
+        today_attendance:
+          type: integer
+        pending_advances:
+          type: integer
+
+    SuccessMessage:
+      type: object
+      properties:
+        success:
+          type: boolean
+        message:
+          type: string
+
+    ErrorResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: false
+        message:
+          type: string
