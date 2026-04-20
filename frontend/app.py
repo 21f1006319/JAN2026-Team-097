@@ -569,10 +569,60 @@ def employee_change_password():
     
     return redirect(url_for('employee_portal'))
 
+# ==================== CHATBOT ROUTES ====================
+
+@app.route('/chatbot')
+@login_required
+def chatbot():
+    """Chatbot interface for users to ask questions"""
+    session_id = request.args.get('session_id')
+    user_id = session.get('user_id')
+    
+    # Get user's chat sessions
+    sessions_result = api_call('GET', '/chatbot/sessions', params={'user_id': user_id})
+    sessions = sessions_result.get('sessions', []) if sessions_result.get('success') else []
+    
+    # Get chat history for current session if provided
+    history = []
+    if session_id:
+        history_result = api_call('GET', '/chatbot/history', params={'user_id': user_id, 'session_id': session_id})
+        history = history_result.get('history', []) if history_result.get('success') else []
+    
+    return render_template('chatbot.html',
+                          sessions=sessions,
+                          history=history,
+                          current_session_id=session_id)
+
+@app.route('/api/chatbot/query', methods=['POST'])
+@login_required
+def chatbot_query():
+    """Proxy chatbot query to backend"""
+    data = request.json
+    data['user_id'] = session.get('user_id')
+    
+    result = api_call('POST', '/chatbot/query', data=data)
+    return jsonify(result)
+
+@app.route('/api/chatbot/history/clear', methods=['POST'])
+@login_required
+def clear_chat_history():
+    """Clear chat history"""
+    data = request.json
+    data['user_id'] = session.get('user_id')
+    
+    result = api_call('POST', '/chatbot/history/clear', data=data)
+    
+    if result.get('success'):
+        flash('Chat history cleared!', 'success')
+    else:
+        flash('Error clearing chat history', 'danger')
+    
+    return redirect(url_for('chatbot'))
+
 if __name__ == '__main__':
     print("Starting Workforce & Payroll Management Frontend Server...")
     print("Connecting to Backend at:", BACKEND_URL)
     print("")
     print("Access the application at: http://localhost:5000")
     print("")
-    app.run(host='0.0.0.0', port=5000, debug=True)
+    app.run(host='0.0.0.0', port=5002, debug=True)

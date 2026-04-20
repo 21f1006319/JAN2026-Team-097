@@ -11,6 +11,10 @@ import string
 import calendar
 from datetime import datetime, date
 from functools import wraps
+import json
+
+# Import chatbot utilities
+from chatbot_utils import VectorSearchEngine, get_chat_history, save_chat_message, get_or_create_session
 
 app = Flask(__name__)
 CORS(app)
@@ -1001,6 +1005,209 @@ def get_dashboard_stats():
         'pending_advances': pending_advances
     })
 
+# ==================== CHATBOT APIs ====================
+
+# Initialize vector search engine
+vector_engine = VectorSearchEngine(DB_PATH)
+
+@app.route('/api/chatbot/query', methods=['POST'])
+def chatbot_query():
+    """Process a user query using RAG - match to prompt-SQL pair, execute query, return results"""
+    data = request.json
+    user_query = data.get('query', '').strip()
+    user_id = data.get('user_id')
+    session_id = data.get('session_id')
+    
+    if not user_query:
+        return jsonify({'success': False, 'message': 'Query is required'}), 400
+    
+    if not user_id:
+        return jsonify({'success': False, 'message': 'User ID is required'}), 400
+    
+    # Get or create session
+    session_id = get_or_create_session(DB_PATH, user_id, session_id)
+    
+    # Save user message
+    save_chat_message(DB_PATH, user_id, session_id, 'user', user_query)
+    
+    # Find best matching prompt-SQL pair
+    match, params, score = vector_engine.find_best_match(user_query)
+    
+    if not match:
+        # No relevant match found
+        bot_message = "This question is beyond the scope of the application. Kindly ask questions related to the application."
+        save_chat_message(DB_PATH, user_id, session_id, 'bot', bot_message)
+        return jsonify({
+            'success': True,
+            'matched': False,
+            'message': bot_message,
+            'session_id': session_id
+        })
+    
+    # Format SQL query with extracted parameters
+    sql_query = vector_engine.format_sql_query(match['sql_query'], params)
+    
+    # Execute the SQL query
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    
+    try:
+        cursor.execute(sql_query)
+        columns = [description[0] for description in cursor.description] if cursor.description else []
+        rows = cursor.fetchall()
+        
+        # Convert to list of dicts
+        results = []
+        for row in rows:
+            row_dict = {}
+            for i, col in enumerate(columns):
+                row_dict[col] = row[i]
+            results.append(row_dict)
+        
+        conn.close()
+        
+        # Format the response
+        if len(results) == 0:
+            bot_message = f"No results found for your query about '{match['description']}'."
+        elif len(results) == 1:
+            # Single result - show details
+            bot_message = f"**{match['description']}**\n\n"
+            for key, value in results[0].items():
+                bot_message += f"• {key.replace('_', ' ').title()}: {value}\n"
+        else:
+            # Multiple results - create summary
+            bot_message = f"**{match['description']}** ({len(results)} records)\n\n"
+            
+            # Show first 5 results
+            for i, row in enumerate(results[:5], 1):
+                # Try to find a name field for the header
+                name_fields = [k for k in row.keys() if 'name' in k.lower()]
+                if name_fields:
+                    header = row.get(name_fields[0], f"Record {i}")
+                else:
+                    header = f"Record {i}"
+                
+                bot_message += f"**{header}**\n"
+                for key, value in row.items():
+                    if value and key != name_fields[0] if name_fields else True:
+                        bot_message += f"  • {key.replace('_', ' ').title()}: {value}\n"
+                bot_message += "\n"
+            
+            if len(results) > 5:
+                bot_message += f"... and {len(results) - 5} more records.\n"
+        
+        # Save bot response
+        save_chat_message(DB_PATH, user_id, session_id, 'bot', bot_message, sql_query, json.dumps(results))
+        
+        return jsonify({
+            'success': True,
+            'matched': True,
+            'category': match['category'],
+            'description': match['description'],
+            'message': bot_message,
+            'sql_query': sql_query,
+            'results': results,
+            'session_id': session_id,
+            'match_score': round(score, 3)
+        })
+        
+    except Exception as e:
+        conn.close()
+        error_message = f"I found a matching query pattern, but there was an error executing it: {str(e)}"
+        save_chat_message(DB_PATH, user_id, session_id, 'bot', error_message)
+        return jsonify({
+            'success': False,
+            'message': error_message,
+            'session_id': session_id
+        }), 500
+
+
+@app.route('/api/chatbot/history', methods=['GET'])
+def get_chatbot_history():
+    """Get chat history for a user"""
+    user_id = request.args.get('user_id', type=int)
+    session_id = request.args.get('session_id')
+    
+    if not user_id:
+        return jsonify({'success': False, 'message': 'User ID is required'}), 400
+    
+    history = get_chat_history(DB_PATH, user_id, session_id)
+    
+    return jsonify({
+        'success': True,
+        'history': history,
+        'session_id': session_id
+    })
+
+
+@app.route('/api/chatbot/sessions', methods=['GET'])
+def get_chatbot_sessions():
+    """Get all chat sessions for a user"""
+    user_id = request.args.get('user_id', type=int)
+    
+    if not user_id:
+        return jsonify({'success': False, 'message': 'User ID is required'}), 400
+    
+    sessions = get_chat_history(DB_PATH, user_id, session_id=None)
+    
+    return jsonify({
+        'success': True,
+        'sessions': sessions
+    })
+
+
+@app.route('/api/chatbot/prompts', methods=['GET'])
+def get_chatbot_prompts():
+    """Get available prompt-SQL pairs (for help/documentation)"""
+    category = request.args.get('category')
+    
+    prompts = vector_engine.get_all_prompts(category)
+    
+    # Don't expose the actual SQL queries, just the templates and descriptions
+    safe_prompts = []
+    for p in prompts:
+        templates = p['prompt_template'].split('|')
+        safe_prompts.append({
+            'id': p['id'],
+            'examples': templates[:3],  # Show first 3 examples
+            'description': p['description'],
+            'category': p['category']
+        })
+    
+    return jsonify({
+        'success': True,
+        'prompts': safe_prompts
+    })
+
+
+@app.route('/api/chatbot/history/clear', methods=['POST'])
+def clear_chatbot_history():
+    """Clear chat history for a user or specific session"""
+    data = request.json
+    user_id = data.get('user_id')
+    session_id = data.get('session_id')
+    
+    if not user_id:
+        return jsonify({'success': False, 'message': 'User ID is required'}), 400
+    
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    
+    if session_id:
+        cursor.execute('DELETE FROM chat_history WHERE user_id = ? AND session_id = ?',
+                      (user_id, session_id))
+    else:
+        cursor.execute('DELETE FROM chat_history WHERE user_id = ?', (user_id,))
+    
+    conn.commit()
+    conn.close()
+    
+    return jsonify({
+        'success': True,
+        'message': 'Chat history cleared successfully'
+    })
+
+
 if __name__ == '__main__':
     # Create uploads directory if not exists
     os.makedirs(UPLOAD_FOLDER, exist_ok=True)
@@ -1015,5 +1222,7 @@ if __name__ == '__main__':
     print("  - Penalties: GET/POST /api/penalties")
     print("  - Advances: GET/POST /api/advance")
     print("  - Payroll: POST /api/payroll/compute")
+    print("  - Chatbot: POST /api/chatbot/query")
+    print("  - Chatbot History: GET /api/chatbot/history")
     print("")
     app.run(host='0.0.0.0', port=5001, debug=True)
