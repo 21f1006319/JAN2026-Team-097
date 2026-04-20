@@ -71,7 +71,7 @@ def login():
             'role': user['role'],
             'email': user['email']
         })
-    return jsonify({'success': False, 'message': 'Invalid credentials'}), 401
+    return jsonify({'success': False, 'message': 'Employee not found'}), 404    #updated after client feedback
 
 @app.route('/api/change_password', methods=['POST'])
 def change_password():
