@@ -1,0 +1,201 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Payslip - {{ payslip.employee_name }} - {{ payslip.month }}/{{ payslip.year }}</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <style>
+        @media print {
+            .no-print { display: none !important; }
+            .main-content { margin: 0; padding: 0; }
+            .payslip-container { box-shadow: none; border: 1px solid #ddd; }
+        }
+    </style>
+</head>
+<body>
+    {% if not is_employee|default(false) %}
+    {% include 'navbar.html' %}
+    {% endif %}
+    
+    <div class="main-content">
+        <div class="container-fluid">
+            <!-- Actions -->
+            <div class="no-print mb-3">
+                <div class="d-flex justify-content-between align-items-center">
+                    <h4><i class="fas fa-file-invoice me-2"></i>Salary Payslip</h4>
+                    <div>
+                        <button onclick="window.print()" class="btn btn-primary">
+                            <i class="fas fa-print me-2"></i>Print / Download PDF
+                        </button>
+                        {% if not is_employee|default(false) %}
+                        <a href="{{ url_for('payroll') }}" class="btn btn-outline-secondary ms-2">Back to Payroll</a>
+                        {% else %}
+                        <a href="{{ url_for('employee_portal') }}" class="btn btn-outline-secondary ms-2">Back to Portal</a>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Payslip -->
+            <div class="payslip-container">
+                <div class="payslip-header">
+                    <div class="row">
+                        <div class="col-md-8">
+                            <h3 class="company-name">WORKFORCE & PAYROLL SYSTEM</h3>
+                            <p class="mb-0">{{ payslip.store_name or 'Main Store' }}</p>
+                            <p class="mb-0">{{ payslip.employee_address or 'Address: N/A' }}</p>
+                        </div>
+                        <div class="col-md-4 text-end">
+                            <div class="qr-code-placeholder">
+                                <i class="fas fa-qrcode fa-3x"></i>
+                                <small class="d-block">Scan for Digital Copy</small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="payslip-title">
+                    <h4>SALARY SLIP</h4>
+                    <p>Month: {{ payslip.month }} / Year: {{ payslip.year }}</p>
+                </div>
+                
+                <div class="employee-details">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <table class="table table-borderless table-sm">
+                                <tr>
+                                    <td class="fw-bold" width="40%">Employee Name:</td>
+                                    <td>{{ payslip.employee_name }}</td>
+                                </tr>
+                                <tr>
+                                    <td class="fw-bold">Employee ID:</td>
+                                    <td>{{ payslip.payroll_id }}</td>
+                                </tr>
+                                <tr>
+                                    <td class="fw-bold">Role:</td>
+                                    <td>{{ payslip.role_type }}</td>
+                                </tr>
+                                <tr>
+                                    <td class="fw-bold">Phone:</td>
+                                    <td>{{ payslip.employee_phone or 'N/A' }}</td>
+                                </tr>
+                            </table>
+                        </div>
+                        <div class="col-md-6">
+                            <table class="table table-borderless table-sm">
+                                <tr>
+                                    <td class="fw-bold" width="40%">Total Days:</td>
+                                    <td>{{ payslip.total_days_in_month }}</td>
+                                </tr>
+                                <tr>
+                                    <td class="fw-bold">Days Present:</td>
+                                    <td>{{ payslip.days_present + (payslip.days_half_day * 0.5) }}</td>
+                                </tr>
+                                <tr>
+                                    <td class="fw-bold">Paid Leaves:</td>
+                                    <td>{{ payslip.paid_leaves_allowed }}</td>
+                                </tr>
+                                <tr>
+                                    <td class="fw-bold">Unpaid Leaves:</td>
+                                    <td>{{ payslip.unpaid_leaves }}</td>
+                                </tr>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="salary-breakdown">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <h6 class="text-success"><i class="fas fa-plus-circle me-2"></i>EARNINGS</h6>
+                            <table class="table table-sm">
+                                <tr>
+                                    <td>Base Salary</td>
+                                    <td class="text-end">₹{{ "%.2f"|format(payslip.base_salary) }}</td>
+                                </tr>
+                                <tr>
+                                    <td>Overtime Pay ({{ payslip.total_overtime_hours }} hrs)</td>
+                                    <td class="text-end">+ ₹{{ "%.2f"|format(payslip.overtime_pay) }}</td>
+                                </tr>
+                                {% for inc in payslip.incentives_daily %}
+                                <tr>
+                                    <td>Incentive (Daily): {{ inc.description or 'Performance' }}</td>
+                                    <td class="text-end">+ ₹{{ "%.2f"|format(inc.amount) }}</td>
+                                </tr>
+                                {% endfor %}
+                                {% for inc in payslip.incentives_monthly %}
+                                <tr>
+                                    <td>Bonus: {{ inc.description or 'Monthly' }}</td>
+                                    <td class="text-end">+ ₹{{ "%.2f"|format(inc.amount) }}</td>
+                                </tr>
+                                {% endfor %}
+                                <tr class="table-success fw-bold">
+                                    <td>GROSS EARNINGS</td>
+                                    <td class="text-end">₹{{ "%.2f"|format(payslip.base_salary + payslip.overtime_pay + payslip.total_incentives) }}</td>
+                                </tr>
+                            </table>
+                        </div>
+                        <div class="col-md-6">
+                            <h6 class="text-danger"><i class="fas fa-minus-circle me-2"></i>DEDUCTIONS</h6>
+                            <table class="table table-sm">
+                                <tr>
+                                    <td>Leave Deduction ({{ payslip.unpaid_leaves }} days @ ₹{{ "%.2f"|format(payslip.per_day_salary) }}/day)</td>
+                                    <td class="text-end">₹{{ "%.2f"|format(payslip.leave_deduction) }}</td>
+                                </tr>
+                                {% for pen in payslip.penalties_daily %}
+                                <tr>
+                                    <td>Penalty (Daily): {{ pen.description or 'Violation' }}</td>
+                                    <td class="text-end">₹{{ "%.2f"|format(pen.amount) }}</td>
+                                </tr>
+                                {% endfor %}
+                                {% for pen in payslip.penalties_monthly %}
+                                <tr>
+                                    <td>Penalty: {{ pen.description or 'Monthly' }}</td>
+                                    <td class="text-end">₹{{ "%.2f"|format(pen.amount) }}</td>
+                                </tr>
+                                {% endfor %}
+                                {% for adv in payslip.advances %}
+                                <tr>
+                                    <td>Salary Advance Deduction</td>
+                                    <td class="text-end">₹{{ "%.2f"|format(adv.amount) }}</td>
+                                </tr>
+                                {% endfor %}
+                                <tr class="table-danger fw-bold">
+                                    <td>TOTAL DEDUCTIONS</td>
+                                    <td class="text-end">₹{{ "%.2f"|format(payslip.leave_deduction + payslip.total_penalties + payslip.salary_advances_deducted) }}</td>
+                                </tr>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="net-salary text-center">
+                    <div class="alert alert-primary">
+                        <h5 class="mb-1">NET SALARY PAYABLE</h5>
+                        <h3 class="mb-0">₹{{ "%.2f"|format(payslip.net_salary) }}</h3>
+                        <small class="text-muted">({{ payslip.net_salary|int|round }} rupees only)</small>
+                    </div>
+                </div>
+                
+                <div class="payslip-footer mt-4">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <p class="mb-0"><strong>Per Day Rate:</strong> ₹{{ "%.2f"|format(payslip.per_day_salary) }}</p>
+                            <p class="mb-0"><strong>Status:</strong> {{ payslip.status|upper }}</p>
+                        </div>
+                        <div class="col-md-6 text-end">
+                            <p class="mb-0 text-muted">This is a computer generated payslip</p>
+                            <p class="mb-0 text-muted">Generated on: {{ now() }}</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>
